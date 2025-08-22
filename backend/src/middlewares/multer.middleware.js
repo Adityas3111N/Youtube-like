@@ -17,5 +17,5 @@ const storage = multer.diskStorage( //You're using disk storage, which temporari
 
 export const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 } //10mb
+    limits: { fileSize: 200 * 1024 * 1024 } //200mb
 }); //Good Practice: Set a limit on the file size to prevent excessively large uploads.

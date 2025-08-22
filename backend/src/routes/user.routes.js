@@ -10,11 +10,14 @@ import {
     updateUserCoverImage, 
     getUserChannelProfile, 
     getWatchHistory, 
-    updateAccountDetails
+    updateAccountDetails,
+    getUserById,
+    addToWatchHistory
 } from "../controllers/user.controller.js"
 
 import { upload } from "../middlewares/multer.middleware.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { optionalJWT, verifyJWT } from "../middlewares/auth.middleware.js";
+import { addToWatchLater, getWatchLater, removeFromWatchLater } from "../controllers/watchLater.controller.js";
 
 
 
@@ -51,11 +54,16 @@ router.route("/update-account").patch(verifyJWT, updateAccountDetails)
 router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar) //post me sari details update ho jaengi isliye patch use kiya.
 router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage) //upload.single isliye kyuki multer ka use krke update krne ke liye file keval ek bar upload krne ki permission denge.
 
-router.route("/channel/:username").get(verifyJWT, getUserChannelProfile) //: is important. bcz we are taking username from params(url). before that write c or channel doesn't matter.
+router.route("/channel/:username/:owner").get(getUserChannelProfile) //: is important. bcz we are taking username from params(url). before that write c or channel doesn't matter.
 //ways to give route in postman
 //{{server}}users/channel/eleven
 //
 router.route("/history").get(verifyJWT, getWatchHistory)
+router.route("/getChannel/:id").get(getUserById)
+router.route("/addWatchHistory/:videoId").post(verifyJWT, addToWatchHistory)
 
+router.route("/watch-later/add/:videoId").post(verifyJWT, addToWatchLater)
+router.route("/watch-later/remove/:videoId").post(verifyJWT, removeFromWatchLater)
+router.route("/watch-later").get(verifyJWT, getWatchLater)
 
 export default router

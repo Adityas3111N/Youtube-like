@@ -1,6 +1,6 @@
-import express from "express"
-import cors from "cors"
-import cookieParser from "cookie-parser"
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import express from "express";
 
  // Birth of the ultimate powerful app.
  //This creates an instance of the Express app — your backend’s heart. 
@@ -20,9 +20,15 @@ app.on("error", (error) => {
 //issue occurs (instead of silently failing).
 
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true
-}))
+    origin: "http://localhost:5173", // your frontend URL
+    credentials: true                // allow cookies to be sent
+}));
+
+// app.use(cors({
+//     origin: process.env.CORS_ORIGIN,
+//     credentials: true
+// }))
+
 //That code is like a friendly doorman for your backend. It decides which websites (origins) are allowed to enter and talk to your backend (like your API).
 
 // origin: This is the list of websites the doorman lets in (e.g., your frontend app).
@@ -54,5 +60,7 @@ app.use("/api/v1/subscription", subscriptionRouter)
 
 import playlistRouter from "./routes/playlist.routes.js"
 app.use("/api/v1/playlist", playlistRouter)
+
+
 
 export {app}  //have to export powerful app to use express in different files.

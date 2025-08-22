@@ -1,19 +1,19 @@
 import mongoose from "mongoose"
 import { Playlist } from "../models/playlist.model.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
-import {ApiResponse} from "../utils/ApiResponse.js"
-import {ApiError} from "../utils/ApiError.js"
+import { asyncHandler } from "../utils/asyncHandler.js"
+import { ApiResponse } from "../utils/ApiResponse.js"
+import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
 
 const createPlaylist = asyncHandler(async (req, res) => {
-    const {name, description} = req.body
+    const { name, description } = req.body
     const owner = req?.user._id
 
-    if(!name || !description){
+    if (!name || !description) {
         throw new ApiError(400, "either name or description is missing")
-    } 
+    }
 
-    if(!owner){
+    if (!owner) {
         throw new ApiError(400, "owner is necessary for making a playlist")
     }
 
@@ -23,58 +23,75 @@ const createPlaylist = asyncHandler(async (req, res) => {
         owner
     })
 
-    if(!playlist){
+    if (!playlist) {
         throw new ApiError(500, "server error, playlist can't be created.")
     }
 
     return res
-    .status(200)
-    .json(new ApiResponse(
-        200,
-        playlist,
-        "playlist has been successfully created."
-    ))
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            playlist,
+            "playlist has been successfully created."
+        ))
 
 })
+
+const getPlaylistById = asyncHandler(async (req, res) => {
+    const { playlistId } = req.params;
+
+    const playlist = await Playlist.findById(playlistId)
+        .populate("videos") // assumes your Playlist schema has `videos: [{ type: mongoose.Schema.Types.ObjectId, ref: "Video" }]`
+        .populate("owner", "username email");
+
+    if (!playlist) {
+        throw new ApiError(404, "Playlist not found");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, playlist, "Playlist fetched successfully")
+    );
+});
+
 const updatePlaylist = asyncHandler(async (req, res) => {
     const playlistId = req.params.playlistId
-    const {name, description} = req.body
+    const { name, description } = req.body
 
     const playlist = await Playlist.findById(playlistId)
 
-    if(!playlist){
+    if (!playlist) {
         throw new ApiError(400, "playlist doesn't exist")
     }
-    
-    if(name)playlist.name = name
-    if(description)playlist.description = description
-    
+
+    if (name) playlist.name = name
+    if (description) playlist.description = description
+
     await playlist.save()
 
     return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            playlist,
-            "playlist updated successfully."
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                playlist,
+                "playlist updated successfully."
+            )
         )
-    )
 
 })
 const addVideo = asyncHandler(async (req, res) => {
-    const {playlistId, videoId} = req.body
-    
-    if(!playlistId || !videoId){
+    const { playlistId, videoId } = req.params
+
+    if (!playlistId || !videoId) {
         throw new ApiError(400, "both playlistId and videoid is necessary")
     }
 
     const playlist = await Playlist.findById(playlistId)
-    if(!playlist){
+    if (!playlist) {
         throw new ApiError(400, "playlist doesn't exist")
     }
-    
-    if(playlist.videos.includes(videoId)){
+
+    if (playlist.videos.includes(videoId)) {
         throw new ApiError(400, "video already exist in playlist")
     }
 
@@ -82,28 +99,28 @@ const addVideo = asyncHandler(async (req, res) => {
     await playlist.save()
 
     return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            playlist,
-            "video added in playlist successfully."
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                playlist,
+                "video added in playlist successfully."
+            )
         )
-    )
 })
 const removeVideo = asyncHandler(async (req, res) => {
-    const {playlistId, videoId} = req.body
-    
-    if(!playlistId || !videoId){
+    const { playlistId, videoId } = req.body
+
+    if (!playlistId || !videoId) {
         throw new ApiError(400, "both playlistId and videoid is necessary")
     }
 
     const playlist = await Playlist.findById(playlistId)
-    if(!playlist){
+    if (!playlist) {
         throw new ApiError(400, "playlist doesn't exist")
     }
-    
-    if(!playlist.videos.includes(videoId)){
+
+    if (!playlist.videos.includes(videoId)) {
         throw new ApiError(400, "video doesn't exist in playlist")
     }
 
@@ -111,59 +128,59 @@ const removeVideo = asyncHandler(async (req, res) => {
     await playlist.save()
 
     return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            playlist,
-            "video removed successfully."
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                playlist,
+                "video removed successfully."
+            )
         )
-    )
 })
 
 const listAllPlaylists = asyncHandler(async (req, res) => {
     //list all playlist created by a user
     const owner = req?.user._id
-    
-    if(!owner){
+
+    if (!owner) {
         throw new ApiError(400, "user doesn,t exist")
     }
 
-    const playlists = await Playlist.find({owner})
-    .sort({createdAt: -1})
-    .select("name description videos createdAt owner")
+    const playlists = await Playlist.find({ owner })
+        .sort({ createdAt: -1 })
+        .select("name description videos createdAt owner")
 
-    if(!playlists){
+    if (!playlists) {
         throw new ApiError(400, "user hasn't created any playlist.")
     }
 
     return res
-    .status(200)
-    .json(new ApiResponse(
-        200,
-        playlists,
-        "all playlists are listed successfully"
-    ))
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            playlists,
+            "all playlists are listed successfully"
+        ))
 })
 const deletePlaylist = asyncHandler(async (req, res) => {
     const playlistId = req.params.playlistId
 
-    if(!playlistId){
+    if (!playlistId) {
         throw new ApiError(400, "playlistId is necessary")
     }
 
     const deletePlaylist = await Playlist.findByIdAndDelete(playlistId)
 
     return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            deletePlaylist,
-            "playlist has been successfully deleted"
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                deletePlaylist,
+                "playlist has been successfully deleted"
+            )
         )
-    )
-    
+
 })
 
 export {
@@ -172,5 +189,6 @@ export {
     addVideo,
     removeVideo,
     deletePlaylist,
-    listAllPlaylists
+    listAllPlaylists,
+    getPlaylistById
 }

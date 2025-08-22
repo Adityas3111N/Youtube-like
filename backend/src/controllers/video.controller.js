@@ -41,8 +41,10 @@ const uploadVideo = asyncHandler(async (req, res) => {
         thumbnail: thumbnail.url,
         title,
         description: description,
-        duration: 10,
-        owner: req.user._id
+        duration: Math.round(video.duration),
+        owner: req.user._id,
+        owner_userName: req.user.userName,
+        avatar: req.avatar,
 
     })
 
@@ -72,6 +74,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
     // Fetch paginated and sorted videos
     const videos = await Video.find({})
+        .populate("owner", "userName fullName avatar")
         .sort(sortOptions)
         .skip(skip)
         .limit(limit);
@@ -91,57 +94,65 @@ const getAllVideos = asyncHandler(async (req, res) => {
         `All videos fetched successfully. Total pages: ${totalPages}`
     ));
 });
- //working fine. all videos got from database. 10 at a page.
+//working fine. all videos got from database. 10 at a page.
 //i can apply more fiters too like sorting according to views or duration or likes.
+import mongoose from "mongoose";
+
 const getSingleVideo = asyncHandler(async (req, res) => {
-    const {id} = req.params
+    const { id } = req.params;
+    const userId = req.user?._id; // might be undefined if not logged in
 
-    try {
-        const video = await Video.findById(id)
+    const video = await Video.findById(id).populate("owner", "_id userName fullName avatar");
+    if (!video) throw new ApiError(404, "Video not found");
 
-        if(!video){
-            return new ApiError(401, "Video not found")
-        }
+    let isLiked = false;
+    let isDisliked = false;
 
-        return res
-        .status(200)
-        .json(new ApiResponse(
-            200,
-            video,
-            "video fetched successfully"
-        ))
-    } catch (error) {
-        return new ApiError(401, "internal server error")
+    if (userId) {
+        // Convert userId to string once
+        const strUserId = userId.toString();
+
+        isLiked = video.likes.users.some(uid => uid.toString() === strUserId);
+        isDisliked = video.dislikes.users.some(uid => uid.toString() === strUserId);
     }
-})// in get all videos we will get all video so we can map that array in such a way that user sees thumbnail, title ,etc and that whole div behaves as anchor(link).
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { ...video.toObject(), isLiked, isDisliked },
+            "video fetched successfully"
+        )
+    );
+});
+// in get all videos we will get all video so we can map that array in such a way that user sees thumbnail, title ,etc and that whole div behaves as anchor(link).
 // <a href={`/video/${video._id}`}> like this now params have => http://yourfrontend.com/video/65d75f8f7c9a4e001234abcd a link like this from which out controller only need the last one.
 //now frontend will make a get request(fetch or axios) to the backend for that video of that id in params.
 
 
 const deleteVideo = asyncHandler(async (req, res) => {
-    
-    const {id} = req.params
+
+    const { id } = req.params
     const video = await Video.findById(id)
 
-    if(String(video.owner )!== String(req.user._id)){
+    if (String(video.owner._id) !== String(req.user._id)) {
         throw new ApiError(407, "user is not authorised to delete this video.")
     }
     try {
-        
+
         const video = await Video.findByIdAndDelete(id)
-        if(!video){
+        if (!video) {
             throw new ApiError(401, "video not found")
         }
 
         return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                video,
-                "video deleted successFully"
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    video,
+                    "video deleted successFully"
+                )
             )
-        )
     } catch (error) {
         throw new ApiError(500, "internal server error")
     }
@@ -154,8 +165,10 @@ const updateVideo = asyncHandler(async (req, res) => {
     try {
         const updatedVideo = await Video.findByIdAndUpdate(
             id,
-            { title: title,
-              description: description }, // Only update these fields
+            {
+                title: title,
+                description: description
+            }, // Only update these fields
             { new: true, runValidators: true } // Return updated doc, run any schema validators
         );
 
@@ -178,107 +191,111 @@ const updateVideo = asyncHandler(async (req, res) => {
 });
 
 
-const likeAVideo = asyncHandler(async (req, res) => {//verify jwt phle hi ho rha hai bs isi wjh se current user ka access mil raha hai.
-    const {id} = req.params
+const likeAVideo = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userId = req.user._id;
 
-    const video = await Video.findById(id)
+    const video = await Video.findById(id);
+    if (!video) throw new ApiError(404, "Video not found");
 
-    if(!video){
-        throw new ApiError(404, "video not found")
+    const hasLiked = video.likes.users.includes(userId);
+    const hasDisliked = video.dislikes.users.includes(userId);
+
+    let update = {};
+
+    if (hasLiked) {
+        // remove like
+        update = {
+            $pull: { "likes.users": userId },
+            $inc: { "likes.count": -1 }
+        };
+    } else {
+        // add like
+        update = {
+            $addToSet: { "likes.users": userId },
+            $inc: { "likes.count": 1 },
+        };
+        if (hasDisliked) {
+            update.$pull = { "dislikes.users": userId };
+            update.$inc["dislikes.count"] = -1;
+        }
     }
 
-    //user can like only if he is not already liked.
-    if(video.likes.users.includes(req.user._id)){
-        return res
-        .status(409)
-        .json(
-            new ApiResponse(
-                409,
-                null,
-                "user has already liked the video"
-            )
+    const updatedVideo = await Video.findByIdAndUpdate(id, update, { new: true });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                currentlyLikedBy: userId,
+                totalLikes: updatedVideo.likes.count,
+                totalDislikes: updatedVideo.dislikes.count,
+                isLiked: !hasLiked
+            },
+            !hasLiked ? "Video liked successfully" : "Like removed successfully"
         )
+    );
+});
+
+
+const dislikeAVideo = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const video = await Video.findById(id);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
     }
 
-    //if user already disliked, remove from dislikes.
-    if(video.dislikes.users.includes(req.user._id)){
+    const userId = req.user._id;
+    const hasDisliked = video.dislikes.users.some(
+        (user) => user.toString() === userId.toString()
+    );
+    const hasLiked = video.likes.users.some(
+        (user) => user.toString() === userId.toString()
+    );
+
+    if (hasDisliked) {
+        // Toggle off dislike
         video.dislikes.users = video.dislikes.users.filter(
-            (user) => user.toString() !== req.user._id.toString() //to covert into string while comparing mongo objects is a good practise. bcz mostly they are objectId type.
-        )
-        video.dislikes.count-=1
-    }//removed the current user from dislike array. if he disliked.
+            (user) => user.toString() !== userId.toString()
+        );
+        video.dislikes.count -= 1;
+    } else {
+        // Add dislike
+        video.dislikes.users.push(userId);
+        video.dislikes.count += 1;
 
-    video.likes.users.push(req.user._id)
-    video.likes.count+=1
+        // If liked before → remove like
+        if (hasLiked) {
+            video.likes.users = video.likes.users.filter(
+                (user) => user.toString() !== userId.toString()
+            );
+            video.likes.count -= 1;
+        }
+    }
 
-    await video.save({validateBeforeSave : false})
+    await video.save({ validateBeforeSave: false });
 
-    return res
-    .status(200)
-    .json(
+    const isDisliked = video.dislikes.users.some(
+        (user) => user.toString() === userId.toString()
+    );
+
+    return res.status(200).json(
         new ApiResponse(
             200,
             {
-                currentlyLikedBy : req.user._id,
+                currentlyDislikedBy: userId,
                 totalLikes: video.likes.count,
-                totalDislikes: video.dislikes.count
-
+                totalDislikes: video.dislikes.count,
+                isDisliked
             },
-            "User like updated successfully"
+            isDisliked
+                ? "Video disliked successfully"
+                : "Dislike removed successfully"
         )
-    )
-})
+    );
+});
 
-const dislikeAVideo = asyncHandler(async (req, res) => {//verify jwt phle hi ho rha hai bs isi wjh se current user ka access mil raha hai.
-    const {id} = req.params
-
-    const video = await Video.findById(id)
-
-    if(!video){
-        throw new ApiError(404, "video not found")
-    }
-
-    //user can like only if he is not already liked.
-    if(video.dislikes.users.includes(req.user._id)){
-        return res
-        .status(409)
-        .json(
-            new ApiResponse(
-                409,
-                null,
-                "user has already disliked the video"
-            )
-        )
-    }
-
-    //if user already liked, remove from likes.
-    if(video.likes.users.includes(req.user._id)){
-        video.likes.users = video.likes.users.filter(
-            (user) => user.toString() !== req.user._id.toString() //to covert into string while comparing mongo objects is a good practise. bcz mostly they are objectId type.
-        )
-        video.likes.count-=1
-    }//removed the current user from dislike array. if he disliked.
-
-    video.dislikes.users.push(req.user._id)
-    video.dislikes.count+=1
-
-    await video.save({validateBeforeSave : false})
-
-    return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            {
-                currentlyDislikedBy : req.user._id,
-                totalLikes: video.likes.count,
-                totalDislikes: video.dislikes.count //bcz we have to update like and dislikes both on frontend each time user interact with both buttons.
-
-            },
-            "User dislike updated successfully"
-        )
-    )
-})
 
 
 

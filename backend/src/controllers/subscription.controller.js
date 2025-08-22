@@ -6,75 +6,73 @@ import {ApiError} from "../utils/ApiError.js"
 import { User } from "../models/user.model.js"
 
 const userSubscribes = asyncHandler(async (req, res) => {
-    const channel = await User.findById(req.params.channel).select("-password -refreshToken")
-    const subscriber = await User.findById(req.user._id).select("-password -refreshToken")
+    const channelId = req.query.channelId;  // 👈 now channel id comes from query
+    const subscriberId = req.user._id;
 
-    if(!channel || !subscriber){
-        throw new ApiError(400, "Both channel and subscriber are required.")
+    if (!channelId) {
+        throw new ApiError(400, "Channel id is required in query.");
     }
 
-    const isAlreadySubscriber = await Subscription.findOne(
-        {
-            subscriber: subscriber._id,
-            channel: channel._id
-        }
-    )
-    if(isAlreadySubscriber){
-        throw new ApiError(400, "You are already subscribed to this channel.")
+    const channel = await User.findById(channelId).select("-password -refreshToken");
+    const subscriber = await User.findById(subscriberId).select("-password -refreshToken");
+
+    if (!channel || !subscriber) {
+        throw new ApiError(400, "Both channel and subscriber must exist.");
     }
 
     const subscribed = await Subscription.create({
-        subscriber: subscriber._id,
-        channel: channel._id
-    })
+        subscriber: subscriberId,
+        channel: channelId
+    });
 
-    if(!subscribed){
-        throw new ApiError(500, "Something went wrong in Subscription controller")
+    if (!subscribed) {
+        throw new ApiError(500, "Something went wrong in Subscription controller");
     }
 
     return res
-    .status(200)
-    .json(new ApiResponse(
-        200,
-        subscribed,
-        "user has successfully subscribed."
-    ))
-})
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            subscribed,
+            "User has successfully subscribed."
+        ));
+});
+
 const userUnsubscribes = asyncHandler(async (req, res) => {
-    const channel = await User.findById(req.params.channel).select("-password -refreshToken")
-    const subscriber = await User.findById(req.user._id).select("-password -refreshToken")
+    const channelId = req.query.channelId;  // 👈 same as subscribe
+    const subscriberId = req.user._id;
+
+    if (!channelId) {
+        throw new ApiError(400, "Channel id is required in query.");
+    }
+
+    const channel = await User.findById(channelId).select("-password -refreshToken");
+    const subscriber = await User.findById(subscriberId).select("-password -refreshToken");
 
     if (!channel || !subscriber) {
-        throw new ApiError(400, "Both channel and subscriber are required.");
+        throw new ApiError(400, "Both channel and subscriber must exist.");
     }
 
-    const isChannelSubscribed = await Subscription.findOne(
-        {
-            subscriber: subscriber._id,
-            channel : channel._id
-        }
-    )
+    const subscription = await Subscription.findOne({
+        subscriber: subscriberId,
+        channel: channelId
+    });
 
-    if(!isChannelSubscribed){
-           throw new ApiError(400, "You are not subscribed to this channel.") 
+    if (!subscription) {
+        throw new ApiError(400, "You are not subscribed to this channel.");
     }
 
-    const unsubscribe = await Subscription.findByIdAndDelete(isChannelSubscribed._id)
+    const unsubscribed = await Subscription.findByIdAndDelete(subscription._id);
 
-    if(!unsubscribe){
-        throw new ApiError(500, "Server issue, can't unsubscribe right now.")
-    }
-
-    return res
-    .status(200)
-    .json(
+    return res.status(200).json(
         new ApiResponse(
             200,
-            unsubscribe,
-            "user has successfully unsubscribed."
+            unsubscribed,
+            "User has successfully unsubscribed."
         )
-    )
-})
+    );
+});
+
 const getAllChannels = asyncHandler(async (req, res) => {
     //get all channels a user has subscribed.
     const subscriber = req?.user._id

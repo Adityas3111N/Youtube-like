@@ -12,7 +12,7 @@ const router = Router();
 router.route("/add-comment").post(verifyJWT, addComment)
 router.route("/delete-comment").post(verifyJWT, deleteComment)
 router.route("/update-comment").patch(verifyJWT, updateComment)
-router.route("").get(verifyJWT, getAllComments)
+router.route("").get(getAllComments)
 
 
 export default router
