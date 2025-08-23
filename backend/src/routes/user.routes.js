@@ -12,7 +12,8 @@ import {
     getWatchHistory, 
     updateAccountDetails,
     getUserById,
-    addToWatchHistory
+    addToWatchHistory,
+    getLikedVideos
 } from "../controllers/user.controller.js"
 
 import { upload } from "../middlewares/multer.middleware.js";
@@ -65,5 +66,6 @@ router.route("/addWatchHistory/:videoId").post(verifyJWT, addToWatchHistory)
 router.route("/watch-later/add/:videoId").post(verifyJWT, addToWatchLater)
 router.route("/watch-later/remove/:videoId").post(verifyJWT, removeFromWatchLater)
 router.route("/watch-later").get(verifyJWT, getWatchLater)
+router.route("/liked-videos").get(verifyJWT, getLikedVideos)
 
 export default router

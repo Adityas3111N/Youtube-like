@@ -62,21 +62,29 @@ export const removeFromWatchLater = async (req, res) => {
 
 // Get all Watch Later videos
 export const getWatchLater = async (req, res) => {
-  try {
-    const userId = req.user._id;
+    try {
+        const userId = req.user._id;
 
-    const user = await User.findById(userId).populate("watchLater");
+        const user = await User.findById(userId).populate(
+            {
+                path: "watchLater",
+                populate: {
+                    path: "owner",            // populate the video's owner
+                    select: "userName avatar fullName", // only pick required fields
+                },
+            }
+        );
 
-    //reverse to show latest added first
-    const latestFirst = [...user.watchLater].reverse();
+        //reverse to show latest added first
+        const latestFirst = [...user.watchLater].reverse();
 
-    res.status(200).json({
-      success: true,
-      data: latestFirst,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+        res.status(200).json({
+            success: true,
+            data: latestFirst,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 

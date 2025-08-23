@@ -2,6 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js"; // we have created a ut
 //that take a function as a parameter and wrapped in try catch so no tension of handling error etc.
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.model.js" //tis can have direct contact with db. as it  is created by mongoose.
+import { Video } from "../models/video.model.js";
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
@@ -379,68 +380,91 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 })
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-    const { username, owner } = req.params  //bcz param key is username not userName. in url we generally use smallcase for clarity.
-    //this was a bug i was trying to use "userName" and this threw error. bcz param is giving 
-    //{ username: 'eleven' }
+    const { username } = req.params;
 
-
-    //note - param se lete hue hamesa jo param me define hoga usi naam se data lenge.
     if (!username?.trim()) {
-        throw new ApiError(400, "username is missing")
+        throw new ApiError(400, "username is missing");
     }
 
-    //now you have 2 options either use User.find({userName}) then apply aggregation pipeline on its _id.
-    //or second option use $match from aggregation features.
-
-    const channel = await User.aggregate([ //output jo channel me store hoga vo array hoga.
+    const channel = await User.aggregate([
         {
-            $match: {//stage 1 - ab hamare pas keval ek document hai jiske pas vo username hai jo ki frontend ko chahiye.
+            $match: {
                 userName: username?.toLowerCase()
             }
         },
         {
             $lookup: {
-                from: "subscriptions", //mongo me sare feilds lowercase aur plural ho jati h.
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "channel",
-                as: "subscribers" //it will return all documents which subscribes _id.
-            },
+                as: "subscribers"
+            }
         },
         {
             $lookup: {
-                from: "subscriptions", //mongo me sare feilds lowercase aur plural ho jati h.
+                from: "subscriptions",
                 localField: "_id",
-                foreignField: "subscriber",  //check in each document in subscriptions it will look for subscriber feild with _id value.
-                as: "subscriberedTo" //it will return all documents which is subscribed by _id.
-            },
+                foreignField: "subscriber",
+                as: "subscriberedTo"
+            }
         },
-
         {
             $lookup: {
                 from: "videos",
                 localField: "_id",
                 foreignField: "owner",
-                as: "allVideosOfAChannel",
-            },
+                as: "allVideosOfAChannel"
+            }
         },
-
+        // 👇 enrich each video's owner with avatar + username
         {
-            $addFields: {//add additional fields.
-                subscribersCount: {
-                    $size: "$subscribers"
-                },
-                channelSubscribedToCount: {
-                    $size: "$subscriberedTo"
-                },
-
+            $lookup: {
+                from: "users",
+                localField: "allVideosOfAChannel.owner",
+                foreignField: "_id",
+                as: "videoOwners"
+            }
+        },
+        {
+            $addFields: {
+                allVideosOfAChannel: {
+                    $map: {
+                        input: "$allVideosOfAChannel",
+                        as: "video",
+                        in: {
+                            $mergeObjects: [
+                                "$$video",
+                                {
+                                    owner: {
+                                        $arrayElemAt: [
+                                            {
+                                                $filter: {
+                                                    input: "$videoOwners",
+                                                    as: "vo",
+                                                    cond: { $eq: ["$$vo._id", "$$video.owner"] }
+                                                }
+                                            },
+                                            0
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            $addFields: {
+                subscribersCount: { $size: "$subscribers" },
+                channelSubscribedToCount: { $size: "$subscriberedTo" },
                 isSubscribed: {
                     $cond: {
-                        if: { $in: [req.user?._id, "$subscribers.subscriber"] }, //check if _id of user is in subscribers.subscriber or not.
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
                         then: true,
                         else: false
                     }
-                },
-
+                }
             }
         },
         {
@@ -454,25 +478,35 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 isSubscribed: 1,
                 channelSubscribedToCount: 1,
                 createdAt: 1,
-                allVideosOfAChannel: 1,
+                "allVideosOfAChannel._id": 1,
+                "allVideosOfAChannel.videoFile": 1,
+                "allVideosOfAChannel.thumbnail": 1,
+                "allVideosOfAChannel.title": 1,
+                "allVideosOfAChannel.description": 1,
+                "allVideosOfAChannel.duration": 1,
+                "allVideosOfAChannel.views": 1,
+                "allVideosOfAChannel.likes": 1,
+                "allVideosOfAChannel.dislikes": 1,
+                "allVideosOfAChannel.isPublished": 1,
+                "allVideosOfAChannel.createdAt": 1,
+                "allVideosOfAChannel.updatedAt": 1,
+                "allVideosOfAChannel.owner._id": 1,
+                "allVideosOfAChannel.owner.userName": 1,
+                "allVideosOfAChannel.owner.fullName": 1, 
+                "allVideosOfAChannel.owner.avatar": 1
             }
         }
-    ])
+
+    ]);
 
     if (!channel?.length) {
-        throw new ApiError(404, "channel does not exist.")
+        throw new ApiError(404, "channel does not exist.");
     }
 
-    return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                channel[0],
-                "user channel fetched successfully"
-            )
-        )
-})
+    return res.status(200).json(
+        new ApiResponse(200, channel[0], "user channel fetched successfully")
+    );
+});
 
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
@@ -595,6 +629,22 @@ const getUserById = asyncHandler(async (req, res) => {
     }
 });
 
+const getLikedVideos = asyncHandler(async (req, res) => {
+    const userId = req.user._id; // comes from JWT middleware
+
+    const likedVideos = await Video.find({ "likes.users": userId })
+        .populate("owner", "userName avatar") // populate channel/owner details
+        .select("title thumbnail views createdAt owner likes count") // select only what you need
+        .sort({ createdAt: -1 }); // latest uploaded videos first
+
+    return res.status(200).json({
+        success: true,
+        message: "Liked videos fetched successfully",
+        data: likedVideos,
+    });
+});
+
+
 
 export {
     registerUser,
@@ -609,5 +659,6 @@ export {
     getUserChannelProfile,
     getWatchHistory,
     getUserById,
-    addToWatchHistory
+    addToWatchHistory,
+    getLikedVideos
 } //exported registerUser object.

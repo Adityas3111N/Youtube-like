@@ -41,8 +41,14 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     const { playlistId } = req.params;
 
     const playlist = await Playlist.findById(playlistId)
-        .populate("videos") // assumes your Playlist schema has `videos: [{ type: mongoose.Schema.Types.ObjectId, ref: "Video" }]`
-        .populate("owner", "username email");
+        .populate({
+            path: "videos",
+            populate: {
+                path: "owner",
+                select: "username avatar" // 👈 only fetch username + avatar
+            }
+        })
+        .populate("owner", "username email avatar"); // playlist owner
 
     if (!playlist) {
         throw new ApiError(404, "Playlist not found");
@@ -52,6 +58,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         new ApiResponse(200, playlist, "Playlist fetched successfully")
     );
 });
+
 
 const updatePlaylist = asyncHandler(async (req, res) => {
     const playlistId = req.params.playlistId
