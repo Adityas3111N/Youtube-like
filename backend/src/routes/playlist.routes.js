@@ -14,8 +14,8 @@ const router = Router()
 router.route("/create-playlist").post(verifyJWT, createPlaylist)
 router.route("/:playlistId").get(verifyJWT, getPlaylistById)
 router.route("/update-playlist/:playlistId").patch(verifyJWT, updatePlaylist)
-router.route("/:playlistId/add-video/:videoId").post(verifyJWT, addVideo)
-router.route("/remove-video").post(verifyJWT, removeVideo)
+router.route("/:playlistId/videos/:videoId").post(verifyJWT, addVideo)
+router.route("/:playlistId/videos/:videoId").delete(verifyJWT, removeVideo) //made restful apis consistant.
 router.route("").get(verifyJWT, listAllPlaylists)
 router.route("/delete-playlist/:playlistId").post(verifyJWT, deletePlaylist)
 

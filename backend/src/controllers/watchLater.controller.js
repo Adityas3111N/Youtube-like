@@ -87,4 +87,30 @@ export const getWatchLater = async (req, res) => {
     }
 };
 
+// Check if a video is in Watch Later
+export const isInWatchLater = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const { videoId } = req.params;
+
+        const user = await User.findById(userId).select("watchLater");
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const inWatchLater = user.watchLater.some(
+            (id) => id.toString() === videoId.toString()
+        );
+
+        res.status(200).json({
+            success: true,
+            inWatchLater,
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
 

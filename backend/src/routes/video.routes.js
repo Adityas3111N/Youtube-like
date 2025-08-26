@@ -7,7 +7,8 @@ import { uploadVideo,
          deleteVideo,
          updateVideo,
          likeAVideo,
-         dislikeAVideo
+         dislikeAVideo,
+         getTrendingVideos
         } from "../controllers/video.controller.js";
 
 import { addView } from "../controllers/views.controller.js";
@@ -40,5 +41,6 @@ router.route("/update-video/:id").patch(verifyJWT, updateVideo)
 router.route("/like-video/:id").patch(likeAVideo)
 router.route("/dislike-video/:id").patch(dislikeAVideo)
 router.route("/:videoId/views").post(optionalJWT, addView)
+router.route("/trending").get(getTrendingVideos)
 
 export default router // ab is router ko kisi bhi naam se import kr skte hai.

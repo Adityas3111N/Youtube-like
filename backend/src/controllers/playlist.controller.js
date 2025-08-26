@@ -45,7 +45,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
             path: "videos",
             populate: {
                 path: "owner",
-                select: "username avatar" // 👈 only fetch username + avatar
+                select: "username avatar userName fullName" // 👈 only fetch username + avatar
             }
         })
         .populate("owner", "username email avatar"); // playlist owner
@@ -116,7 +116,7 @@ const addVideo = asyncHandler(async (req, res) => {
         )
 })
 const removeVideo = asyncHandler(async (req, res) => {
-    const { playlistId, videoId } = req.body
+    const { playlistId, videoId } = req.params
 
     if (!playlistId || !videoId) {
         throw new ApiError(400, "both playlistId and videoid is necessary")
@@ -155,7 +155,8 @@ const listAllPlaylists = asyncHandler(async (req, res) => {
 
     const playlists = await Playlist.find({ owner })
         .sort({ createdAt: -1 })
-        .select("name description videos createdAt owner")
+        .select("name description videos createdAt owner") // keep owner so we can populate
+        
 
     if (!playlists) {
         throw new ApiError(400, "user hasn't created any playlist.")
@@ -169,6 +170,8 @@ const listAllPlaylists = asyncHandler(async (req, res) => {
             "all playlists are listed successfully"
         ))
 })
+
+
 const deletePlaylist = asyncHandler(async (req, res) => {
     const playlistId = req.params.playlistId
 

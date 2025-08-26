@@ -18,7 +18,7 @@ import {
 
 import { upload } from "../middlewares/multer.middleware.js";
 import { optionalJWT, verifyJWT } from "../middlewares/auth.middleware.js";
-import { addToWatchLater, getWatchLater, removeFromWatchLater } from "../controllers/watchLater.controller.js";
+import { addToWatchLater, getWatchLater, isInWatchLater, removeFromWatchLater } from "../controllers/watchLater.controller.js";
 
 
 
@@ -66,6 +66,7 @@ router.route("/addWatchHistory/:videoId").post(verifyJWT, addToWatchHistory)
 router.route("/watch-later/add/:videoId").post(verifyJWT, addToWatchLater)
 router.route("/watch-later/remove/:videoId").post(verifyJWT, removeFromWatchLater)
 router.route("/watch-later").get(verifyJWT, getWatchLater)
+router.route("/in-watch-later/:videoId").get(verifyJWT, isInWatchLater)
 router.route("/liked-videos").get(verifyJWT, getLikedVideos)
 
 export default router

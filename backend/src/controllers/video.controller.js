@@ -297,6 +297,67 @@ const dislikeAVideo = asyncHandler(async (req, res) => {
 });
 
 
+const getTrendingVideos = asyncHandler(async (req, res) => {
+    const limit = Number(req.query.limit) || 20; // default: 20 trending videos
+
+    try {
+        const trendingVideos = await Video.aggregate([
+            {
+                $addFields: {
+                    trendingScore: {
+                        $add: [
+                            { $multiply: ["$views", 0.6] },
+                            { $multiply: ["$likes.count", 2] },
+                            { $multiply: [{ $ifNull: ["$commentsCount", 0] }, 3] }
+                        ]
+                    }
+                }
+            },
+            { $sort: { trendingScore: -1, createdAt: -1 } }, // sort by score first, then recent
+            { $limit: limit },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner"
+                }
+            },
+            { $unwind: "$owner" }, // flatten owner array
+            {
+                $project: {
+                    videoFile: 1,
+                    thumbnail: 1,
+                    title: 1,
+                    description: 1,
+                    duration: 1,
+                    views: 1,
+                    likes: 1,
+                    dislikes: 1,
+                    commentsCount: 1,
+                    createdAt: 1,
+                    owner: {
+                        _id: "$owner._id",
+                        userName: "$owner.userName",
+                        fullName: "$owner.fullName",
+                        avatar: "$owner.avatar"
+                    },
+                    trendingScore: 1
+                }
+            }
+        ]);
+
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                { videos: trendingVideos },
+                "Trending videos fetched successfully"
+            )
+        );
+    } catch (error) {
+        throw new ApiError(500, "Failed to fetch trending videos");
+    }
+});
 
 
 
@@ -307,5 +368,6 @@ export {
     deleteVideo,
     updateVideo,
     likeAVideo,
-    dislikeAVideo
+    dislikeAVideo,
+    getTrendingVideos
 }
