@@ -1,4 +1,4 @@
-# 03ChaiBackend - YouTube Backend Clone
+Youtube Backend
 
 A scalable and production-ready **YouTube backend** built with **Node.js, Express, MongoDB**, and **Cloudinary** for media management.
 
