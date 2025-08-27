@@ -20,9 +20,10 @@ app.on("error", (error) => {
 //issue occurs (instead of silently failing).
 
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:4173"],
-    credentials: true                // allow cookies to be sent
+    origin: process.env.CORS_ORIGIN?.split(",") || [],
+    credentials: true
 }));
+
 
 // app.use(cors({
 //     origin: process.env.CORS_ORIGIN,
