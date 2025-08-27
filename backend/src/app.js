@@ -2,15 +2,15 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
 
- // Birth of the ultimate powerful app.
- //This creates an instance of the Express app — your backend’s heart. 
- // It’s like a command center that listens for incoming requests and sends 
- // responses.
+// Birth of the ultimate powerful app.
+//This creates an instance of the Express app — your backend’s heart. 
+// It’s like a command center that listens for incoming requests and sends 
+// responses.
 const app = express();
 
 //When an error is emitted by the app, the error details are logged to the console
 //with console.log("error", error).
-app.on("error", (error) => {  
+app.on("error", (error) => {
     console.log("error", error);
     throw error;
 })
@@ -20,7 +20,7 @@ app.on("error", (error) => {
 //issue occurs (instead of silently failing).
 
 app.use(cors({
-    origin: "http://localhost:5173", // your frontend URL
+    origin: ["http://localhost:5173", "http://localhost:4173"],
     credentials: true                // allow cookies to be sent
 }));
 
@@ -36,10 +36,10 @@ app.use(cors({
 // So basically, it’s just saying, “Hey backend, let this website in and talk to you safely.”
 
 app.use(express.json()) //Helps your app understand JSON data sent in requests.
-app.use(express.urlencoded({extended: true}))//Helps your app understand form data (like when you submit a form on a website).
+app.use(express.urlencoded({ extended: true }))//Helps your app understand form data (like when you submit a form on a website).
 app.use(express.static("public"))//Lets your app serve files like images, CSS, or JavaScript from the "public" folder.
 app.use(cookieParser())//Helps your app read cookies (small pieces of data stored in the browser).
- 
+
 
 //routes import
 //by importing here we are seggregrating the code in sections.
@@ -61,6 +61,9 @@ app.use("/api/v1/subscription", subscriptionRouter)
 import playlistRouter from "./routes/playlist.routes.js"
 app.use("/api/v1/playlist", playlistRouter)
 
+import { healthCheck } from "./controllers/health.controller.js";
+app.get("/api/v1/health", healthCheck)
 
 
-export {app}  //have to export powerful app to use express in different files.
+
+export { app }  //have to export powerful app to use express in different files.
