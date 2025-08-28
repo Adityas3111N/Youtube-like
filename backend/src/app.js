@@ -2,73 +2,83 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import express from "express";
 
-// Birth of the ultimate powerful app.
-//This creates an instance of the Express app — your backend’s heart. 
-// It’s like a command center that listens for incoming requests and sends 
-// responses.
 const app = express();
 
-//When an error is emitted by the app, the error details are logged to the console
-//with console.log("error", error).
+// Error handler for uncaught app errors
 app.on("error", (error) => {
-    console.log("error", error);
-    throw error;
-})
+    console.error("Application error:", error);
+    process.exit(1);
+});
 
-//After logging the error, the code rethrows the error using throw error;.
-//This is often done to make sure the application stops running if a critical 
-//issue occurs (instead of silently failing).
-
-// app.use(cors({
-//     origin: process.env.CORS_ORIGIN?.split(",") || [],
-//     credentials: true
-// }));
-
-
-app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+// Robust CORS configuration for production
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = process.env.CORS_ORIGIN?.split(",") || [];
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-    exposedHeaders: ["Set-Cookie"]
-}))
+    exposedHeaders: ["Set-Cookie"],
+    optionsSuccessStatus: 200 // Legacy browser support
+};
 
+// Middleware stack
+app.use(cors(corsOptions));
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.static("public"));
+app.use(cookieParser());
 
-//That code is like a friendly doorman for your backend. It decides which websites (origins) are allowed to enter and talk to your backend (like your API).
+// Route imports and registration
+const routes = [
+    { path: "/api/v1/users", router: () => import("./routes/user.routes.js") },
+    { path: "/api/v1/videos", router: () => import("./routes/video.routes.js") },
+    { path: "/api/v1/comments", router: () => import("./routes/comments.routes.js") },
+    { path: "/api/v1/subscription", router: () => import("./routes/subscription.routes.js") },
+    { path: "/api/v1/playlist", router: () => import("./routes/playlist.routes.js") }
+];
 
-// origin: This is the list of websites the doorman lets in (e.g., your frontend app).
-// credentials: true: It also allows these websites to bring cookies or tokens with them, like IDs for who they are.
-// So basically, it’s just saying, “Hey backend, let this website in and talk to you safely.”
+// Dynamic route registration
+routes.forEach(async ({ path, router }) => {
+    const { default: routeHandler } = await router();
+    app.use(path, routeHandler);
+});
 
-app.use(express.json()) //Helps your app understand JSON data sent in requests.
-app.use(express.urlencoded({ extended: true }))//Helps your app understand form data (like when you submit a form on a website).
-app.use(express.static("public"))//Lets your app serve files like images, CSS, or JavaScript from the "public" folder.
-app.use(cookieParser())//Helps your app read cookies (small pieces of data stored in the browser).
-
-
-//routes import
-//by importing here we are seggregrating the code in sections.
-import userRouter from "./routes/user.routes.js"
-
-app.use("/api/v1/users", userRouter)  //app.use ka use middlewares ke liye hota h.
-//it means jaise hi path "/api/v1/users" ho, ap userRouter me chale jao aage ka 
-// rasta wha se pta chalega. similarily we will make for videoRouter, etc.
-
-import videoRouter from "./routes/video.routes.js"
-app.use("/api/v1/videos", videoRouter)
-
-import commentRouter from "./routes/comments.routes.js"
-app.use("/api/v1/comments", commentRouter)
-
-import subscriptionRouter from "./routes/subscription.routes.js"
-app.use("/api/v1/subscription", subscriptionRouter)
-
-import playlistRouter from "./routes/playlist.routes.js"
-app.use("/api/v1/playlist", playlistRouter)
-
+// Health check endpoint
 import { healthCheck } from "./controllers/health.controller.js";
-app.get("/api/v1/health", healthCheck)
+app.get("/api/v1/health", healthCheck);
 
+// Global error handler
+app.use((error, req, res, next) => {
+    if (error.message?.includes("CORS")) {
+        return res.status(403).json({ 
+            success: false, 
+            message: "CORS policy violation" 
+        });
+    }
+    
+    console.error("Unhandled error:", error);
+    res.status(500).json({ 
+        success: false, 
+        message: "Internal server error" 
+    });
+});
 
+// 404 handler
+app.use("*", (req, res) => {
+    res.status(404).json({ 
+        success: false, 
+        message: `Route ${req.originalUrl} not found` 
+    });
+});
 
-export { app }  //have to export powerful app to use express in different files.
+export { app };
