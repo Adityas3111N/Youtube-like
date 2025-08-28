@@ -39,19 +39,17 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 // Route imports and registration
-const routes = [
-    { path: "/api/v1/users", router: () => import("./routes/user.routes.js") },
-    { path: "/api/v1/videos", router: () => import("./routes/video.routes.js") },
-    { path: "/api/v1/comments", router: () => import("./routes/comments.routes.js") },
-    { path: "/api/v1/subscription", router: () => import("./routes/subscription.routes.js") },
-    { path: "/api/v1/playlist", router: () => import("./routes/playlist.routes.js") }
-];
+import userRouter from "./routes/user.routes.js";
+import videoRouter from "./routes/video.routes.js";
+import commentRouter from "./routes/comments.routes.js";
+import subscriptionRouter from "./routes/subscription.routes.js";
+import playlistRouter from "./routes/playlist.routes.js";
 
-// Dynamic route registration
-routes.forEach(async ({ path, router }) => {
-    const { default: routeHandler } = await router();
-    app.use(path, routeHandler);
-});
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1/videos", videoRouter);
+app.use("/api/v1/comments", commentRouter);
+app.use("/api/v1/subscription", subscriptionRouter);
+app.use("/api/v1/playlist", playlistRouter);
 
 // Health check endpoint
 import { healthCheck } from "./controllers/health.controller.js";
