@@ -175,7 +175,8 @@ const logoutUser = asyncHandler(
 
         const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
             httpOnly: true,
-            secure: true
+            secure: true,
+            samesite: "none"
         }
 
         return res
@@ -221,7 +222,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         const options = {
             httpOnly: true,
-            secure: true
+            secure: true,
+            samesite: "none"
         }
         const { accessToken, newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
         return res
