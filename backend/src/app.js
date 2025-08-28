@@ -19,16 +19,16 @@ app.on("error", (error) => {
 //This is often done to make sure the application stops running if a critical 
 //issue occurs (instead of silently failing).
 
-app.use(cors({
-    origin: process.env.CORS_ORIGIN?.split(",") || [],
-    credentials: true
-}));
-
-
 // app.use(cors({
-//     origin: process.env.CORS_ORIGIN,
+//     origin: process.env.CORS_ORIGIN?.split(",") || [],
 //     credentials: true
-// }))
+// }));
+
+
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true
+}))
 
 //That code is like a friendly doorman for your backend. It decides which websites (origins) are allowed to enter and talk to your backend (like your API).
 
