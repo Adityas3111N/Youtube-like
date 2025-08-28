@@ -31,6 +31,26 @@ const corsOptions = {
     optionsSuccessStatus: 200 // Legacy browser support
 };
 
+// Additional manual CORS headers for better cookie support
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(",") || [];
+    
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+        res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
+    }
+    
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    
+    next();
+});
+
 // Middleware stack
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "16kb" }));

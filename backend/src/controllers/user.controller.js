@@ -34,18 +34,22 @@ const generateTokens = async (userId) => {
     }
 };
 
-// Cookie setting utility
+// Cookie setting utility - using manual headers for better Chrome compatibility
 const setCookies = (res, { accessToken, refreshToken }) => {
-    return res
-        .cookie("accessToken", accessToken, { ...COOKIE_OPTIONS, maxAge: ACCESS_TOKEN_EXPIRY })
-        .cookie("refreshToken", refreshToken, { ...COOKIE_OPTIONS, maxAge: REFRESH_TOKEN_EXPIRY });
+    const cookieHeaders = [
+        `accessToken=${accessToken}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${Math.floor(ACCESS_TOKEN_EXPIRY / 1000)}`,
+        `refreshToken=${refreshToken}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${Math.floor(REFRESH_TOKEN_EXPIRY / 1000)}`
+    ];
+    return res.setHeader('Set-Cookie', cookieHeaders);
 };
 
 // Cookie clearing utility
 const clearCookies = (res) => {
-    return res
-        .clearCookie("accessToken", COOKIE_OPTIONS)
-        .clearCookie("refreshToken", COOKIE_OPTIONS);
+    const clearHeaders = [
+        `accessToken=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`,
+        `refreshToken=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    ];
+    return res.setHeader('Set-Cookie', clearHeaders);
 };
 
 // Controllers
