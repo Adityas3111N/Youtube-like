@@ -141,7 +141,8 @@ const loginUser = asyncHandler(
         //step 5 - send cookies & send response that user logged in.
         const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
             httpOnly: true,
-            secure: true
+            secure: true,
+            samesite: "none"
         }
 
         return res
