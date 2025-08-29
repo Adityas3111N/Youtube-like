@@ -96,8 +96,8 @@ const registerUser = asyncHandler(
         // ✅ Step 7 - create token (auto-login)
         const token = jwt.sign(
             { id: createdUser._id },
-            process.env.ACCESS_TOKEN_EXPIRY,
-            { expiresIn: "7d" }
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
         );
 
         // Step 8 - send response with token and user data
