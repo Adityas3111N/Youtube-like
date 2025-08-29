@@ -147,13 +147,15 @@ const loginUser = asyncHandler(
 
         return res
             .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
+            // .cookie("accessToken", accessToken, options)
+            // .cookie("refreshToken", refreshToken, options) chrome was not letting backend fetch cookies from frontend. (it was cross origin)
             .json(
                 new ApiResponse(
                     200,
                     {
-                        user: loggedInUser //if you just write accessToken, refreshtoken here. it will give both twice in reponse. i solved that bug.
+                        user: loggedInUser, //if you just write accessToken, refreshtoken here. it will give both twice in reponse. i solved that bug. lolll it was not a bug instead i created a bug due to this which lasted for a whole day.
+                        accessToken,
+                        refreshToken
                     },
                     "user logged in successfully"
                 )
