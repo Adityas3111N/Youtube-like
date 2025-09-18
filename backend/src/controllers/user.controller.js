@@ -147,8 +147,8 @@ const loginUser = asyncHandler(
 
         return res
             .status(200)
-            // .cookie("accessToken", accessToken, options)
-            // .cookie("refreshToken", refreshToken, options) chrome was not letting backend fetch cookies from frontend. (it was cross origin)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)// chrome was not letting backend fetch cookies from frontend. (it was cross origin)
             .json(
                 new ApiResponse(
                     200,
@@ -175,16 +175,16 @@ const logoutUser = asyncHandler(
             },
         )
 
-        const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
-            httpOnly: true,
-            secure: true,
-            sameSite: "None"
-        }
+        // const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
+        //     httpOnly: true,
+        //     secure: true,
+        //     sameSite: "None"
+        // } //since i am not using any cookies so commented these lines.
 
         return res
             .status(200)
-            .clearCookie("accessToken", options)
-            .clearCookie("refreshToken", options)
+            // .clearCookie("accessToken", options) //not using cookies anymore.
+            // .clearCookie("refreshToken", options)
             .json(
                 new ApiResponse(200, {}, "user logged out successfully.")
             )
