@@ -142,7 +142,8 @@ const loginUser = asyncHandler(
         const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
             httpOnly: true,
             secure: true,
-            sameSite: "None"
+            sameSite: "None",
+            domain: ".onrender.com"
         }
 
         return res
