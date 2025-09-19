@@ -143,7 +143,7 @@ const loginUser = asyncHandler(
             httpOnly: true,
             secure: true,
             sameSite: "None",
-            domain: ".onrender.com"
+            domain: "youtube-clone-2w92.onrender.com"
         }
 
         return res
