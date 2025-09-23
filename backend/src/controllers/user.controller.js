@@ -175,16 +175,16 @@ const logoutUser = asyncHandler(
             },
         )
 
-        // const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
-        //     httpOnly: true,
-        //     secure: true,
-        //     sameSite: "None"
-        // } //since i am not using any cookies so commented these lines.
+        const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
+            httpOnly: true,
+            secure: true,
+            sameSite: "None"
+        } 
 
         return res
             .status(200)
-            // .clearCookie("accessToken", options) //not using cookies anymore.
-            // .clearCookie("refreshToken", options)
+            .clearCookie("accessToken", options) 
+            .clearCookie("refreshToken", options)
             .json(
                 new ApiResponse(200, {}, "user logged out successfully.")
             )
