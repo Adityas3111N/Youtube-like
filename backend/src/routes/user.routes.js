@@ -55,7 +55,7 @@ router.route("/update-account").patch(verifyJWT, updateAccountDetails)
 router.route("/avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar) //post me sari details update ho jaengi isliye patch use kiya.
 router.route("/cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage) //upload.single isliye kyuki multer ka use krke update krne ke liye file keval ek bar upload krne ki permission denge.
 
-router.route("/channel/:username/:owner").get(getUserChannelProfile) //: is important. bcz we are taking username from params(url). before that write c or channel doesn't matter.
+router.route("/channel/:username/:owner").get(getUserChannelProfile, optionalJWT) //: is important. bcz we are taking username from params(url). before that write c or channel doesn't matter.
 //ways to give route in postman
 //{{server}}users/channel/eleven
 //
