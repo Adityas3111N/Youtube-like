@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
 import { json } from "express";
 import { Subscription } from "../models/subscription.model.js";
+import { options } from "../utils/options.js";
 
 
 
@@ -139,11 +140,11 @@ const loginUser = asyncHandler(
         const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
         //step 5 - send cookies & send response that user logged in.
-        const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
-            httpOnly: true,
-            secure: true,
-            sameSite: "None",
-        }
+        // const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
+        //     httpOnly: true,
+        //     secure: true,
+        //     sameSite: "None",
+        // }
 
         return res
             .status(200)
@@ -175,11 +176,11 @@ const logoutUser = asyncHandler(
             },
         )
 
-        const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
-            httpOnly: true,
-            secure: true,
-            sameSite: "None"
-        } 
+        // const options = { //by default cookies can be modified by anyone. but doing these two now itsonly modifiable from server. altrough frontend can see it.
+        //     httpOnly: true,
+        //     secure: true,
+        //     sameSite: "None"
+        // } 
 
         return res
             .status(200)
@@ -222,11 +223,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
         //if refreshToken matched.
 
-        const options = {
-            httpOnly: true,
-            secure: true,
-            sameSite: "None"
-        }
+        // const options = {
+        //     httpOnly: true,
+        //     secure: true,
+        //     sameSite: "None"
+        // }
         const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
         return res
             .status(200)

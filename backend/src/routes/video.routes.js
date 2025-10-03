@@ -38,8 +38,8 @@ router.route("/upload-video")
 
 router.route("/delete-video/:id").post(verifyJWT, deleteVideo)
 router.route("/update-video/:id").patch(verifyJWT, updateVideo)
-router.route("/like-video/:id").patch(likeAVideo)
-router.route("/dislike-video/:id").patch(dislikeAVideo)
+router.route("/like-video/:id").patch(verifyJWT, likeAVideo)
+router.route("/dislike-video/:id").patch(verifyJWT, dislikeAVideo)
 router.route("/:videoId/views").post(optionalJWT, addView)
 router.route("/trending").get(getTrendingVideos)
 
